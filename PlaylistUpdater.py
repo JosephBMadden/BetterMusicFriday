@@ -5,18 +5,17 @@ import sys
 import spotipy
 import spotipy.util as util
 import base64
+import requests
 
 from datetime import date
 
 playlist_title  = "Better Music Friday"
 playlist_desc   = "All of your favorite's new music. No exceptions. " \
                   "If you want to keep this playlist, just change the title. " \
-                  "Automatically Generated via Joseph Koetting."
+                  "Automatically Generated via Joseph Koetting. " \
+                  "Download: https://github.com/JosephBMadden/BetterMusicFriday " \
+                  "Please Submit all Bugs/Requests to joey@koetting.org"
 playlist_img    = "cloud.jpg"
-
-
-class Found(Exception):
-    pass
 
 
 class PlaylistUpdater:
@@ -104,8 +103,25 @@ class PlaylistUpdater:
             playlist_img_b64 = base64.b64encode(img_file.read())
         self.sp.playlist_upload_cover_image(playlist_id=playlist_id, image_b64=playlist_img_b64)
 
-    # # doesnt get all songs in album if over 50
-    # # it's a feature not a bug
+    @staticmethod
+    # # Removing Duplicates
+    # # Duplicates occur when two artists (that the user follows)
+    # # comes out with the same new song. This helper eliminates them.
+    def __helper_remove_song_duplicates(songs=None):
+        print("LOG: Removing song duplicates")
+
+        seen_id = set()
+        set_songs = []
+        for song in songs:
+            if song['id'] not in seen_id:
+                set_songs.append(song)
+                seen_id.add(song['id'])
+
+        print("LOG: Returning song duplicates")
+        return set_songs
+
+    # # If over 50 songs in album, will only grab first 50 songs
+    # # It's a feature not a bug
     def __get_songs_by_album(self, albums=None, artists=None):
         songs = []
 
@@ -116,9 +132,7 @@ class PlaylistUpdater:
         for album in albums:
             # skip all compilations they are bad
             if not album['album_type'] == "compilation" and not album['album_group'] == "appears_on":
-                songs = songs +  self.sp.album_tracks(album['uri'])['items']
-
-        print("LOG: Returning songs per Album")
+                songs = songs + self.sp.album_tracks(album['uri'])['items']
         return songs
 
     def __get_albums_by_artist(self, artists):
@@ -137,7 +151,7 @@ class PlaylistUpdater:
             for album in albums:
                 # Filter Albums by release date (date < 7 days)
                 if self.__helper_compare_date(album['release_date']):
-                        recent_albums.append(album)
+                    recent_albums.append(album)
 
         print("LOG: Returning Followed Artists new Albums")
         return recent_albums
@@ -169,16 +183,24 @@ class PlaylistUpdater:
         print("LOG: Returning Followed Artists")
         return followed_artists
 
-    def update(self):
+    def update(self, retry=False):
         # noinspection PyBroadException
         try:
             print("LOG: Beginning Update")
-            print("LOG: This may take 1-4 minutes")
+            print("LOG: This may take 1-4 Minutes")
             followed_artists = self.__get_followed_artists()
             new_albums = self.__get_albums_by_artist(artists=followed_artists)
             new_songs = self.__get_songs_by_album(albums=new_albums, artists=followed_artists)
-            self.__update_user_playlist(songs=new_songs)
+            set_new_songs = self.__helper_remove_song_duplicates(songs=new_songs)
+            self.__update_user_playlist(songs=set_new_songs)
             print("LOG: Finished Update")
+        except requests.exceptions.ReadTimeout:
+            if not retry:
+                print("LOG: Request Timeout Error, Retrying...")
+                self.update(True)
+            else:
+                print("LOG: Persisting Server Issue. Please Try Again Later")
+                sys.exit(0)
         except:
             print("LOG: Unexpected Error occurred. Please Fix")
             print("LOG: ERROR:", sys.exc_info()[0])
