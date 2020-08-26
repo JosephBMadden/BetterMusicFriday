@@ -8,7 +8,6 @@ import base64
 
 from datetime import date
 
-
 playlist_title  = "Better Music Friday"
 playlist_desc   = "All of your favorite's new music. No exceptions. " \
                   "If you want to keep this playlist, just change the title. " \
@@ -44,10 +43,9 @@ class PlaylistUpdater:
             print("Exiting...")
             sys.exit()
 
-
     @staticmethod
     def __helper_compare_date(release_date):
-        ## Spotify sometimes only stores the year -- annoying and why
+        # # Spotify sometimes only stores the year -- annoying and why
         try:
             release_date = date.fromisoformat(release_date)
         except ValueError:
@@ -56,7 +54,6 @@ class PlaylistUpdater:
         if abs(date.today() - release_date).days < 7:
             return True
         return False
-
 
     def __add_songs_to_playlist(self, playlist_id, songs=None):
         if songs is None: return
@@ -76,13 +73,11 @@ class PlaylistUpdater:
                 tracks = []
                 track_count = 0
 
-
     def __create_user_playlist(self):
         playlist = self.sp.user_playlist_create(user=self.user, name=playlist_title, public=True, description=playlist_desc)
         return playlist['id']
 
-
-    ## may not work if user has more than 50 playlists
+    # # may not work if user has more than 50 playlists
     def __update_user_playlist(self, songs=None):
         playlists = self.sp.user_playlists(user=self.user)
         playlist_id = None
@@ -109,9 +104,8 @@ class PlaylistUpdater:
             playlist_img_b64 = base64.b64encode(img_file.read())
         self.sp.playlist_upload_cover_image(playlist_id=playlist_id, image_b64=playlist_img_b64)
 
-
-    ## doesnt get all songs in album if over 50
-    ## it's a feature not a bug
+    # # doesnt get all songs in album if over 50
+    # # it's a feature not a bug
     def __get_songs_by_album(self, albums=None, artists=None):
         songs = []
 
@@ -127,7 +121,6 @@ class PlaylistUpdater:
         print("LOG: Returning songs per Album")
         return songs
 
-
     def __get_albums_by_artist(self, artists):
         recent_albums = []
 
@@ -137,18 +130,17 @@ class PlaylistUpdater:
             # Gets only albums from US
             albums = self.sp.artist_albums(artist_id=artist['uri'], country="US")['items']
 
-            ## Apparently you can be an artist without any albums
+            # Apparently you can be an artist without any albums
             if albums is None:
                 break
 
             for album in albums:
-                ## Filter Albums by release date (date < 7 days)
+                # Filter Albums by release date (date < 7 days)
                 if self.__helper_compare_date(album['release_date']):
                         recent_albums.append(album)
 
         print("LOG: Returning Followed Artists new Albums")
         return recent_albums
-
 
     def __get_followed_artists(self):
         followed_artists = []
@@ -177,10 +169,9 @@ class PlaylistUpdater:
         print("LOG: Returning Followed Artists")
         return followed_artists
 
-
     def update(self):
         # noinspection PyBroadException
-        # try:
+        try:
             print("LOG: Beginning Update")
             print("LOG: This may take 1-4 minutes")
             followed_artists = self.__get_followed_artists()
@@ -188,6 +179,6 @@ class PlaylistUpdater:
             new_songs = self.__get_songs_by_album(albums=new_albums, artists=followed_artists)
             self.__update_user_playlist(songs=new_songs)
             print("LOG: Finished Update")
-        # except:
+        except:
             print("LOG: Unexpected Error occurred. Please Fix")
             print("LOG: ERROR:", sys.exc_info()[0])

@@ -104,11 +104,12 @@ def clear_cron(my_cron):
 # Defining main function
 def main(arg=None):
 
-    if arg == "update":
+    # if arg == "update":
+    if arg == None:
         PlaylistUpdater(user="223452345").update()
         sys.exit(0)
 
-    my_cron = CronTab(user='josephkoetting')
+    # my_cron = CronTab(user='josephkoetting')
 
     fa = FileAccess()
 
