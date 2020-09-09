@@ -4,10 +4,11 @@
 import sys
 import re
 
-##from crontab import CronTab
-
+from crontab import CronTab
 from PlaylistUpdater import PlaylistUpdater
 from FileAccess import FileAccess
+
+my_cron = CronTab(user='joseph')
 
 
 def print_intro_prompt():
@@ -29,7 +30,8 @@ def print_help():
     print("-Enter 'INFO' to view program info")
     print("-Enter 'UPDATE' to update playlists")
     print("-Enter 'SETUP' to setup cron")
-    print("-Enter 'QUIT' to setup cron")
+    print("-Enter 'PRINT' to print cron jobs")
+    print("-Enter 'QUIT' to quit application")
     print("--------------------------------")
 
 
@@ -76,27 +78,19 @@ def add_user(fa):
         "user: " + user + "\n")
 
 
-def print_cron(my_cron):
+def print_cron():
     for job in my_cron:
         print(job)
 
 
-def schedule_cron(my_cron):
-    job = my_cron.new(command='python /home/jay/writeDate.py')
-    job.minute.every(1)
-    job.hour.every(1)
+def schedule_cron():
+    my_cron.remove_all()
+    job = my_cron.new(command='python3 ~/Library/Mobile\ Documents/com~apple~CloudDocs/GitHub/BetterMusicFriday/main.py')
+    job.dow.every(5)
     my_cron.write()
 
 
-def update_cron(my_cron):
-    for job in my_cron:
-        if job.comment == 'dateinfo':
-            job.hour.every(10)
-        my_cron.write()
-        print('Cron job modified successfully')
-
-
-def clear_cron(my_cron):
+def clear_cron():
     my_cron.remove_all()
     my_cron.write()
 
@@ -104,12 +98,13 @@ def clear_cron(my_cron):
 # Defining main function
 def main(arg=None):
 
-    # if arg == "update":
-    if arg == None:
+    if arg is None:
         PlaylistUpdater(user="223452345").update()
         sys.exit(0)
 
-    # my_cron = CronTab(user='josephkoetting')
+    if arg != "update":
+        update_all()
+        sys.exit(0)
 
     fa = FileAccess()
 
@@ -123,7 +118,7 @@ def main(arg=None):
         if re.search("^he*", command):
             print_help()
         elif re.search("^up*", command):
-            update()
+            update_all()
         elif re.search("^ne*", command):
             add_user(fa)
         elif re.search("^re*", command):
@@ -131,7 +126,9 @@ def main(arg=None):
         elif re.search("^in*", command):
             print_info(fa)
         elif re.search("^se*", command):
-            print("Cron re-initialized")
+            schedule_cron()
+        elif re.search("^pr*", command):
+            print_cron()
         elif re.search("^qu*", command):
             print("Goodbye!")
             sys.exit(0)
